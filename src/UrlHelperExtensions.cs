@@ -45,7 +45,7 @@ public static class IUrlHelperExtensions {
 	/// <exception cref="ArgumentException"></exception>
 	public static string To<TController>(
 		this IUrlHelper urlHelper,
-		Expression<Func<TController, ActionResult>> action,
+		Expression<Action<TController>> action,
 		object? routeValues = null
 	) where TController : class {
 		return ConstructUrl(urlHelper, action.Body as MethodCallExpression, routeValues) ??
@@ -103,16 +103,24 @@ public static class IUrlHelperExtensions {
 		if (callExpression.Object == null) {
 			throw new InvalidOperationException("Can not generate links to static methods.");
 		}
+		UrlActionContext context;
 
 		if (!actionDescriptor.Parameters.Any()) {
-			return new UrlActionContext() {
+			context = new UrlActionContext() {
 				Action = actionDescriptor.ActionName,
 				Controller = actionDescriptor.ControllerName,
-				Values = additionalRouteValues,
+				Values = new RouteValueDictionary(actionDescriptor.RouteValues),
 			};
+			if (additionalRouteValues!=null) {
+				context.Values = MergeRouteValues(
+					(IDictionary<string, object?>)context.Values,
+					new RouteValueDictionary(additionalRouteValues)
+				);
+			}
+			return context;
 		}
 
-		var routeValues = new Dictionary<string, object?>(actionDescriptor.Parameters.Count);
+		var routeValues = new RouteValueDictionary(actionDescriptor.RouteValues);
 
 		var parameters = callExpression.Method.GetParameters();
 		for (int i = 0; i < callExpression.Arguments.Count; i++) {
@@ -122,19 +130,30 @@ public static class IUrlHelperExtensions {
 			);
 		}
 
-		var context = new UrlActionContext() {
+		context = new UrlActionContext() {
 			Action = actionDescriptor.ActionName,
 			Controller = actionDescriptor.ControllerName,
 		};
 
 		if (additionalRouteValues != null) {
-			RouteValueDictionary routeValueDictionary = new(additionalRouteValues);
+			context.Values = MergeRouteValues(
+				routeValues,
+				new RouteValueDictionary(additionalRouteValues)
+			);
+		}
+		return context;
+	}
+
+	private static IDictionary<string, object?> MergeRouteValues(
+		IDictionary<string, object?> routeValues,
+		IDictionary<string, object?> additionalRouteValues
+	) {
+		if (additionalRouteValues != null && additionalRouteValues.Any()) {
 			foreach (var keyValue in routeValues) {
 				routeValues.TryAdd(keyValue.Key, keyValue.Value);
 			}
 		}
-		context.Values = routeValues;
-		return context;
+		return routeValues;
 	}
 
 	private static ControllerActionDescriptor? GetDescriptor(IUrlHelper urlHelper, MethodInfo methodInfo) {
