@@ -21,7 +21,7 @@ using Microsoft.AspNetCore.Routing;
 namespace Theseus;
 
 public static class IUrlHelperExtensions {
-	private static ConcurrentDictionary<MethodInfo, ControllerActionDescriptor?> _cache = new();
+	private static ConcurrentDictionary<MethodInfo, ControllerActionDescriptor?> _descriptorCache = new();
 	private static IActionDescriptorCollectionProvider? _provider;
 
 	/// <summary>
@@ -45,7 +45,7 @@ public static class IUrlHelperExtensions {
 	/// <exception cref="ArgumentException"></exception>
 	public static string To<TController>(
 		this IUrlHelper urlHelper,
-		Expression<Action<TController>> action,
+		Expression<Func<TController, ActionResult>> action,
 		object? routeValues = null
 	) where TController : class {
 		return ConstructUrl(urlHelper, action.Body as MethodCallExpression, routeValues) ??
@@ -106,6 +106,7 @@ public static class IUrlHelperExtensions {
 		UrlActionContext context;
 
 		if (!actionDescriptor.Parameters.Any()) {
+
 			context = new UrlActionContext() {
 				Action = actionDescriptor.ActionName,
 				Controller = actionDescriptor.ControllerName,
@@ -140,6 +141,8 @@ public static class IUrlHelperExtensions {
 				routeValues,
 				new RouteValueDictionary(additionalRouteValues)
 			);
+		} else {
+			context.Values = routeValues;
 		}
 		return context;
 	}
@@ -149,7 +152,7 @@ public static class IUrlHelperExtensions {
 		IDictionary<string, object?> additionalRouteValues
 	) {
 		if (additionalRouteValues != null && additionalRouteValues.Any()) {
-			foreach (var keyValue in routeValues) {
+			foreach (var keyValue in additionalRouteValues) {
 				routeValues.TryAdd(keyValue.Key, keyValue.Value);
 			}
 		}
@@ -157,10 +160,11 @@ public static class IUrlHelperExtensions {
 	}
 
 	private static ControllerActionDescriptor? GetDescriptor(IUrlHelper urlHelper, MethodInfo methodInfo) {
-		return _cache.GetOrAdd(
+		var descriptor = _descriptorCache.GetOrAdd(
 			methodInfo,
 			methodInfo => {
-				var provider = GetProvider(urlHelper);
+
+				var provider = urlHelper.GetActionDescriptorProvider();
 				return (ControllerActionDescriptor?)provider.ActionDescriptors.Items.FirstOrDefault(
 					y =>
 						y is ControllerActionDescriptor controllerDescriptor
@@ -168,9 +172,10 @@ public static class IUrlHelperExtensions {
 				);
 			}
 		);
+		return descriptor;
 	}
 
-	private static IActionDescriptorCollectionProvider GetProvider(IUrlHelper urlHelper) {
+	private static IActionDescriptorCollectionProvider GetActionDescriptorProvider(this IUrlHelper urlHelper) {
 		if (_provider != null) {
 			return _provider;
 		}
