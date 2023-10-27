@@ -37,7 +37,7 @@ public static class IUrlHelperExtensions {
 	/// Expression that identifies the target action.
 	/// </param>
 	/// <param name="routeValues">
-	/// Additional route values. Optional.
+	/// Additional route values.
 	/// </param>
 	/// <returns>
 	/// The generated URL.
@@ -46,7 +46,7 @@ public static class IUrlHelperExtensions {
 	public static string To<TController>(
 		this IUrlHelper urlHelper,
 		Expression<Func<TController, ActionResult>> action,
-		object? routeValues = null
+		object routeValues
 	) where TController : class {
 		return ConstructUrl(urlHelper, action.Body as MethodCallExpression, routeValues) ??
 			throw new ArgumentException($"Can not create URL to {typeof(TController).FullName}");
@@ -64,8 +64,32 @@ public static class IUrlHelperExtensions {
 	/// <param name="action">
 	/// Expression that identifies the target action.
 	/// </param>
+		/// <returns>
+	/// The generated URL.
+	/// </returns>
+	/// <exception cref="ArgumentException"></exception>
+	public static string To<TController>(
+		this IUrlHelper urlHelper,
+		Expression<Func<TController, ActionResult>> action
+	) where TController : class {
+		return ConstructUrl(urlHelper, action.Body as MethodCallExpression) ??
+			throw new ArgumentException($"Can not create URL to {typeof(TController).FullName}");
+	}
+
+	/// <summary>
+	/// Generates a URL with an absolute path for the action method identified by the function expression.
+	/// </summary>
+	/// <typeparam name="TController">
+	/// Controller the action belongs to.
+	/// </typeparam>
+	/// <param name="urlHelper">
+	/// Extended IUrlHelper instance.
+	/// </param>
+	/// <param name="action">
+	/// Expression that identifies the target action.
+	/// </param>
 	/// <param name="routeValues">
-	/// Additional route values. Optional.
+	/// Additional route values.
 	/// </param>
 	/// <returns>
 	/// The generated URL.
@@ -74,16 +98,40 @@ public static class IUrlHelperExtensions {
 	public static string To<TController>(
 		this IUrlHelper urlHelper,
 		Expression<Func<TController, Task<ActionResult>>> action,
-		object? routeValues = null
+		object routeValues
 	) where TController : class {
 		return ConstructUrl(urlHelper, action.Body as MethodCallExpression, routeValues) ??
+			throw new ArgumentException($"Can not create URL to {typeof(TController).FullName}");
+	}
+
+	/// <summary>
+	/// Generates a URL with an absolute path for the action method identified by the function expression.
+	/// </summary>
+	/// <typeparam name="TController">
+	/// Controller the action belongs to.
+	/// </typeparam>
+	/// <param name="urlHelper">
+	/// Extended IUrlHelper instance.
+	/// </param>
+	/// <param name="action">
+	/// Expression that identifies the target action.
+	/// </param>
+	/// <returns>
+	/// The generated URL.
+	/// </returns>
+	/// <exception cref="ArgumentException"></exception>
+	public static string To<TController>(
+		this IUrlHelper urlHelper,
+		Expression<Func<TController, Task<ActionResult>>> action
+	) where TController : class {
+		return ConstructUrl(urlHelper, action.Body as MethodCallExpression) ??
 			throw new ArgumentException($"Can not create URL to {typeof(TController).FullName}");
 	}
 
 	private static string? ConstructUrl(
 		IUrlHelper urlHelper,
 		MethodCallExpression? callExpression,
-		object? routeValues
+		object routeValues
 	) {
 		if (callExpression == null) {
 			return null;
@@ -95,35 +143,49 @@ public static class IUrlHelperExtensions {
 		return urlHelper.Action(GetActionContext(callExpression, actionDescriptor, routeValues));
 	}
 
+	private static string? ConstructUrl(
+		IUrlHelper urlHelper,
+		MethodCallExpression? callExpression
+	) {
+		if (callExpression == null) {
+			return null;
+		}
+		ControllerActionDescriptor? actionDescriptor = GetDescriptor(urlHelper, callExpression.Method);
+		if (actionDescriptor == null) {
+			return null;
+		}
+		return urlHelper.Action(GetActionContext(callExpression, actionDescriptor));
+	}
+
 	private static UrlActionContext GetActionContext(
 		MethodCallExpression callExpression,
 		ControllerActionDescriptor actionDescriptor,
-		object? additionalRouteValues = null
+		object additionalRouteValues
 	) {
 		if (callExpression.Object == null) {
 			throw new InvalidOperationException("Can not generate links to static methods.");
 		}
-		UrlActionContext context;
-
 		if (!actionDescriptor.Parameters.Any()) {
-
-			context = new UrlActionContext() {
+			return new UrlActionContext() {
 				Action = actionDescriptor.ActionName,
 				Controller = actionDescriptor.ControllerName,
-				Values = new RouteValueDictionary(actionDescriptor.RouteValues),
-			};
-			if (additionalRouteValues!=null) {
-				context.Values = MergeRouteValues(
-					(IDictionary<string, object?>)context.Values,
+				Values = MergeRouteValues(
+					new RouteValueDictionary(actionDescriptor.RouteValues),
 					new RouteValueDictionary(additionalRouteValues)
-				);
-			}
-			return context;
+				)
+			};
 		}
 
+		var parameters = callExpression.Method.GetParameters();
+		if (!parameters.Any()) {
+			return new UrlActionContext() {
+				Action = actionDescriptor.ActionName,
+				Controller = actionDescriptor.ControllerName,
+				Values = actionDescriptor.RouteValues,
+			};
+		}
 		var routeValues = new RouteValueDictionary(actionDescriptor.RouteValues);
 
-		var parameters = callExpression.Method.GetParameters();
 		for (int i = 0; i < callExpression.Arguments.Count; i++) {
 			routeValues.Add(
 				parameters[i].Name ?? "",
@@ -131,24 +193,58 @@ public static class IUrlHelperExtensions {
 			);
 		}
 
-		context = new UrlActionContext() {
+		return new UrlActionContext() {
 			Action = actionDescriptor.ActionName,
 			Controller = actionDescriptor.ControllerName,
-		};
-
-		if (additionalRouteValues != null) {
-			context.Values = MergeRouteValues(
+			Values = MergeRouteValues(
 				routeValues,
 				new RouteValueDictionary(additionalRouteValues)
-			);
-		} else {
-			context.Values = routeValues;
-		}
-		return context;
+			)
+		};
 	}
 
+	private static UrlActionContext GetActionContext(
+		MethodCallExpression callExpression,
+		ControllerActionDescriptor actionDescriptor
+	) {
+		if (callExpression.Object == null) {
+			throw new InvalidOperationException("Can not generate links to static methods.");
+		}
+		if (!actionDescriptor.Parameters.Any()) {
+			return new UrlActionContext() {
+				Action = actionDescriptor.ActionName,
+				Controller = actionDescriptor.ControllerName,
+				Values = actionDescriptor.RouteValues,
+			};
+		}
+
+		var parameters = callExpression.Method.GetParameters();
+		if (!parameters.Any()) {
+			return new UrlActionContext() {
+				Action = actionDescriptor.ActionName,
+				Controller = actionDescriptor.ControllerName,
+				Values = actionDescriptor.RouteValues,
+			};
+		}
+		var routeValues = new RouteValueDictionary(actionDescriptor.RouteValues);
+
+		for (int i = 0; i < callExpression.Arguments.Count; i++) {
+			routeValues.Add(
+				parameters[i].Name ?? "",
+				ExpressionEvaluator.Evaluate(callExpression.Arguments[i])
+			);
+		}
+
+		return new UrlActionContext() {
+			Action = actionDescriptor.ActionName,
+			Controller = actionDescriptor.ControllerName,
+			Values = routeValues,
+		};
+	}
+
+
 	private static IDictionary<string, object?> MergeRouteValues(
-		IDictionary<string, object?> routeValues,
+		RouteValueDictionary routeValues,
 		IDictionary<string, object?> additionalRouteValues
 	) {
 		if (additionalRouteValues != null && additionalRouteValues.Any()) {

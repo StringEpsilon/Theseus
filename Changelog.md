@@ -1,8 +1,16 @@
 ## Changelog
 
-## 0.1.2
+## 0.2.0:
 
-Fix:
+
+- Change: Signature of `To<T>(expression, object)` has changed.
+	the additional route values used to be an optional parameter. Now the method is overloaded w/ and w/o the parameter.
+	This allows for cleaner separation of the differnet codepaths and improves performance for `To<>()` calls w/o additional values.
+- Internal: Bumped EpsilonEvaluator for performance benefits in common route expressions.
+
+
+## 0.1.2
+- Fix: Default route values were not applied in hot path.
 
 ## 0.1.1
 
