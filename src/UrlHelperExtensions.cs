@@ -4,11 +4,8 @@
 	file, You can obtain one at http://mozilla.org/MPL/2.0/.
 **/
 
-using System.Collections.Concurrent;
 using System.Linq.Expressions;
-using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using EpsilonEvaluator;
@@ -21,8 +18,6 @@ using Microsoft.AspNetCore.Routing;
 namespace Theseus;
 
 public static class IUrlHelperExtensions {
-	private static ConcurrentDictionary<MethodInfo, ControllerActionDescriptor?> _descriptorCache = new();
-	private static IActionDescriptorCollectionProvider? _provider;
 
 	/// <summary>
 	/// Generates a URL with an absolute path for the action method identified by the function expression.
@@ -64,7 +59,7 @@ public static class IUrlHelperExtensions {
 	/// <param name="action">
 	/// Expression that identifies the target action.
 	/// </param>
-		/// <returns>
+	/// <returns>
 	/// The generated URL.
 	/// </returns>
 	/// <exception cref="ArgumentException"></exception>
@@ -136,7 +131,10 @@ public static class IUrlHelperExtensions {
 		if (callExpression == null) {
 			return null;
 		}
-		ControllerActionDescriptor? actionDescriptor = GetDescriptor(urlHelper, callExpression.Method);
+		ControllerActionDescriptor? actionDescriptor = ActionDescriptorCache.GetDescriptor(
+			urlHelper,
+			callExpression.Method
+		);
 		if (actionDescriptor == null) {
 			return null;
 		}
@@ -150,7 +148,10 @@ public static class IUrlHelperExtensions {
 		if (callExpression == null) {
 			return null;
 		}
-		ControllerActionDescriptor? actionDescriptor = GetDescriptor(urlHelper, callExpression.Method);
+		ControllerActionDescriptor? actionDescriptor = ActionDescriptorCache.GetDescriptor(
+			urlHelper,
+			callExpression.Method
+		);
 		if (actionDescriptor == null) {
 			return null;
 		}
@@ -253,41 +254,5 @@ public static class IUrlHelperExtensions {
 			}
 		}
 		return routeValues;
-	}
-
-	private static ControllerActionDescriptor? GetDescriptor(IUrlHelper urlHelper, MethodInfo methodInfo) {
-		var descriptor = _descriptorCache.GetOrAdd(
-			methodInfo,
-			methodInfo => {
-
-				var provider = urlHelper.GetActionDescriptorProvider();
-				return (ControllerActionDescriptor?)provider.ActionDescriptors.Items.FirstOrDefault(
-					y =>
-						y is ControllerActionDescriptor controllerDescriptor
-						&& controllerDescriptor.MethodInfo == methodInfo
-				);
-			}
-		);
-		return descriptor;
-	}
-
-	private static IActionDescriptorCollectionProvider GetActionDescriptorProvider(this IUrlHelper urlHelper) {
-		if (_provider != null) {
-			return _provider;
-		}
-
-		var provider = urlHelper
-			.ActionContext
-			.HttpContext
-			.RequestServices
-			.GetService(typeof(IActionDescriptorCollectionProvider)) as IActionDescriptorCollectionProvider;
-
-		if (provider == null) {
-			throw new InvalidOperationException(
-				"Can not resolve URL. Missing IActionDescriptorCollectionProvider service."
-			);
-		}
-		_provider = provider;
-		return provider;
 	}
 }

@@ -1,7 +1,21 @@
 ## Changelog
 
-## 0.2.0:
+## 0.3.0: (Future!)
 
+### BREAKING
+
+- Theseus now requires you to call `app.UseTheseus()` in your startup.cs:
+
+```cs
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime applicationLifetime) {
+	/* ... rest of your configuration ... */
+	app.UseRouting();
+	app.UseTheseus();
+	/* ... rest of your configuration ... */
+}
+```
+
+## 0.2.0:
 
 - Change: Signature of `To<T>(expression, object)` has changed.
 	the additional route values used to be an optional parameter. Now the method is overloaded w/ and w/o the parameter.
