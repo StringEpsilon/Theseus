@@ -1,6 +1,9 @@
 ## Changelog
 
-## 0.3.0:
+## 0.4.0 (Future):
+- Added `Controller.RedirectTo<TController>(actionExpression)` extensions.
+
+## 0.3.0 (Current):
 
 ### BREAKING
 
