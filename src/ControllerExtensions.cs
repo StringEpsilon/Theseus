@@ -16,7 +16,7 @@ namespace Theseus;
 /// </summary>
 public static class ControllerExtensions {
 	/// <summary>
-	/// Shortcut for Controller.Redirect(Url.To<TargetController>(actionExpression)).
+	/// Shortcut for <code>Controller.Redirect(Url.To&lt;TargetController&gt;(actionExpression))</code>
 	/// </summary>
 	/// <typeparam name="TargetController">
 	/// Which controller to direct to.
@@ -38,7 +38,7 @@ public static class ControllerExtensions {
 	}
 
 	/// <summary>
-	/// Shortcut for Controller.Redirect(Url.To<TargetController>(actionExpression)).
+	/// Shortcut for <code>Controller.Redirect(Url.To&lt;TargetController&gt;(actionExpression))</code>
 	/// </summary>
 	/// <typeparam name="TargetController">
 	/// Which controller to direct to.
