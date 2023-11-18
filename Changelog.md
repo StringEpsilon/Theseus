@@ -1,9 +1,10 @@
 ## Changelog
 
-## 0.3.0: (Future!)
+## 0.3.0:
 
 ### BREAKING
 
+- Theseus now targets .NET8.0 exclusively.
 - Theseus now requires you to call `app.UseTheseus()` in your startup.cs:
 
 ```cs

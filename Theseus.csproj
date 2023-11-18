@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<Version>0.2.0</Version>
-		<TargetFramework>net7.0</TargetFramework>
+		<Version>0.3.0</Version>
+		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<IncludeSymbols>true</IncludeSymbols>
 
