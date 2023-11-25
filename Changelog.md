@@ -2,6 +2,7 @@
 
 ## 0.4.0 (Future):
 - Added `Controller.RedirectTo<TController>(actionExpression)` extensions.
+- Bumped EpsilonEvaluator to 0.4.0.
 
 ## 0.3.0 (Current):
 

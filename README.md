@@ -18,7 +18,7 @@ This library uses [EpsilonEvaluator](https://www.nuget.org/packages/EpsilonEvalu
 to evaluate the route parameters from the method arguments. Most expressions should be evaluated without compilation and
 compiled expressions are not cached.
 
-Inspired by [AspNet.Mvc.TypedRouting][https://github.com/ivaylokenov/AspNet.Mvc.TypedRouting] from Ivaylo Kenov.
+Inspired by [AspNet.Mvc.TypedRouting](https://github.com/ivaylokenov/AspNet.Mvc.TypedRouting) from Ivaylo Kenov.
 
 ## Thanks
 
